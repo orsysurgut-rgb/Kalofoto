@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>КалоФото</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --accent: #ff4d1c;
+  --accent2: #ff8c42;
+  --bg: #0a0a0b;
+  --card: #18181c;
+  --border: #27272e;
+  --text: #f0f0f2;
+  --muted: #6b6b7a;
+}
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: system-ui, -apple-system, sans-serif;
+  min-height: 100vh;
+  padding: 0 16px 80px;
+  max-width: 480px;
+  margin: 0 auto;
+}
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 0 16px;
+}
+.logo {
+  font-size: 24px;
+  font-weight: 900;
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+.date { font-size: 12px; color: var(--muted); background: var(--card); border: 1px solid var(--border); padding: 6px 12px; border-radius: 20px; }
+.card { background: var(--card); border: 1px solid var(--border); border-radius: 20px; padding: 18px; margin-bottom: 14px; position: relative; overflow: hidden; }
+.card-top { position: absolute; top: 0; left: 0; right: 0; height: 2px; background: linear-gradient(90deg, var(--accent), var(--accent2)); }
+.label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px; }
+.kcal-big { font-size: 52px; font-weight: 900; line-height: 1; background: linear-gradient(135deg, var(--accent), var(--accent2)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+.kcal-row { display: flex; align-items: baseline; gap: 6px; margin-bottom: 12px; }
+.kcal-sub { font-size: 14px; color: var(--muted); }
+.progress-bg { background: var(--border); border-radius: 100px; height: 6px; margin-bottom: 14px; overflow: hidden; }
+.progress-fill { height: 100%; background: linear-gradient(90deg, var(--accent), var(--accent2)); border-radius: 100px; transition: width .5s ease; }
+.macros { display: grid; grid-template-columns: repeat(3,1fr); gap: 10px; }
+.macro { background: #111113; border-radius: 12px; padding: 10px; text-align: center; }
+.macro-val { font-size: 18px; font-weight: 800; line-height: 1; margin-bottom: 3px; }
+.macro-name { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; }
+.upload-zone { border: 2px dashed var(--border); border-radius: 20px; padding: 32px 20px; text-align: center; cursor: pointer; margin-bottom: 14px; transition: all .2s; -webkit-tap-highlight-color: transparent; }
+.upload-zone:active { background: rgba(255,77,28,.04); border-color: var(--accent); }
+.upload-zone .icon { font-size: 44px; margin-bottom: 10px; }
+.upload-zone .title { font-size: 16px; font-weight: 700; margin-bottom: 6px; }
+.upload-zone .sub { font-size: 13px; color: var(--muted); }
+.preview-wrap { border-radius: 20px; overflow: hidden; margin-bottom: 14px; position: relative; display: none; }
+.preview-wrap img { width: 100%; max-height: 260px; object-fit: cover; display: block; }
+.preview-btns { position: absolute; bottom: 0; left: 0; right: 0; background: linear-gradient(transparent,rgba(0,0,0,.85)); padding: 28px 14px 14px; display: flex; gap: 10px; }
+.btn { border: none; border-radius: 12px; padding: 13px; font-family: inherit; font-size: 14px; font-weight: 700; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.btn-ghost { flex: 1; background: rgba(255,255,255,.1); color: var(--text); border: 1px solid var(--border); }
+.btn-primary { flex: 2; background: linear-gradient(135deg, var(--accent), var(--accent2)); color: white; }
+.loading { display: none; text-align: center; padding: 32px 20px; }
+.spinner { width: 44px; height: 44px; border: 3px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin .8s linear infinite; margin: 0 auto 14px; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.loading-title { font-size: 15px; font-weight: 700; margin-bottom: 6px; }
+.loading-sub { font-size: 13px; color: var(--muted); }
+.error-box { display: none; background: rgba(255,77,28,.08); border: 1px solid rgba(255,77,28,.3); border-radius: 16px; padding: 14px; margin-bottom: 14px; font-size: 13px; color: var(--accent2); line-height: 1.5; word-break: break-word; }
+.result-card { display: none; }
+.result-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 16px; }
+.result-dish { font-size: 18px; font-weight: 800; margin-bottom: 4px; }
+.result-weight { font-size: 13px; color: var(--muted); }
+.result-kcal { font-size: 34px; font-weight: 900; background: linear-gradient(135deg, var(--accent), var(--accent2)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; white-space: nowrap; margin-left: 12px; }
+.result-macros { display: grid; grid-template-columns: repeat(3,1fr); gap: 8px; margin-bottom: 14px; }
+.result-macro { background: #111113; border-radius: 10px; padding: 10px; text-align: center; }
+.result-macro-val { font-size: 18px; font-weight: 800; }
+.result-macro-name { font-size: 10px; color: var(--muted); margin-top: 2px; }
+.result-note { font-size: 12px; color: var(--muted); background: #111113; border-radius: 10px; padding: 10px 12px; margin-bottom: 14px; line-height: 1.5; }
+.btn-add { width: 100%; background: linear-gradient(135deg, var(--accent), var(--accent2)); color: white; border: none; border-radius: 14px; padding: 14px; font-family: inherit; font-size: 15px; font-weight: 700; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.section-title { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px; }
+.diary-list { display: flex; flex-direction: column; gap: 10px; }
+.diary-item { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 14px 16px; display: flex; align-items: center; gap: 12px; }
+.diary-emoji { font-size: 28px; flex-shrink: 0; }
+.diary-info { flex: 1; min-width: 0; }
+.diary-name { font-size: 14px; font-weight: 700; margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.diary-macros { font-size: 11px; color: var(--muted); }
+.diary-kcal { font-size: 22px; font-weight: 900; color: var(--accent); flex-shrink: 0; }
+.diary-del { background: none; border: none; cursor: pointer; color: var(--muted); font-size: 16px; padding: 4px; flex-shrink: 0; }
+.empty { text-align: center; padding: 28px; color: var(--muted); font-size: 14px; }
+.empty-icon { font-size: 32px; margin-bottom: 8px; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="logo">КалоФото 🔥</div>
+  <div class="date" id="dateEl"></div>
+</div>
+
+<!-- Summary -->
+<div class="card">
+  <div class="card-top"></div>
+  <div class="label">Сегодня съедено</div>
+  <div class="kcal-row">
+    <div class="kcal-big" id="totalKcal">0</div>
+    <div class="kcal-sub">ккал из 2000</div>
+  </div>
+  <div class="progress-bg"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
+  <div class="macros">
+    <div class="macro"><div class="macro-val" style="color:#3b82f6" id="totalP">0г</div><div class="macro-name">Белки</div></div>
+    <div class="macro"><div class="macro-val" style="color:#f59e0b" id="totalF">0г</div><div class="macro-name">Жиры</div></div>
+    <div class="macro"><div class="macro-val" style="color:#22c55e" id="totalC">0г</div><div class="macro-name">Углеводы</div></div>
+  </div>
+</div>
+
+<!-- Upload -->
+<div class="upload-zone" id="uploadZone" onclick="document.getElementById('fileInput').click()">
+  <input type="file" id="fileInput" accept="image/*" capture="environment" style="display:none" onchange="onFileChange(event)">
+  <div class="icon">📸</div>
+  <div class="title">Сфотографируй еду</div>
+  <div class="sub">Нажми чтобы выбрать фото</div>
+</div>
+
+<!-- Preview -->
+<div class="preview-wrap" id="previewWrap">
+  <img id="previewImg" src="" alt="food">
+  <div class="preview-btns">
+    <button class="btn btn-ghost" onclick="resetPhoto()">✕ Отмена</button>
+    <button class="btn btn-primary" onclick="analyzePhoto()">🤖 Анализировать</button>
+  </div>
+</div>
+
+<!-- Loading -->
+<div class="card loading" id="loadingCard">
+  <div class="spinner"></div>
+  <div class="loading-title">Анализирую блюдо...</div>
+  <div class="loading-sub">Смотрю на твою еду 👀</div>
+</div>
+
+<!-- Error -->
+<div class="error-box" id="errorBox"></div>
+
+<!-- Result -->
+<div class="card result-card" id="resultCard">
+  <div class="result-header">
+    <div><div class="result-dish" id="rDish"></div><div class="result-weight" id="rWeight"></div></div>
+    <div class="result-kcal" id="rKcal"></div>
+  </div>
+  <div class="result-macros">
+    <div class="result-macro"><div class="result-macro-val" style="color:#3b82f6" id="rP"></div><div class="result-macro-name">Белки</div></div>
+    <div class="result-macro"><div class="result-macro-val" style="color:#f59e0b" id="rF"></div><div class="result-macro-name">Жиры</div></div>
+    <div class="result-macro"><div class="result-macro-val" style="color:#22c55e" id="rC"></div><div class="result-macro-name">Углеводы</div></div>
+  </div>
+  <div class="result-note" id="rNote"></div>
+  <button class="btn-add" onclick="addToDiary()">➕ Добавить в дневник</button>
+</div>
+
+<!-- Diary -->
+<div class="section-title">Дневник питания</div>
+<div id="diaryList"></div>
+
+<script>
+const GOAL = 2000;
+let diary = [];
+let currentResult = null;
+let currentBase64 = null;
+let currentMime = 'image/jpeg';
+
+document.getElementById('dateEl').textContent = new Date().toLocaleDateString('ru-RU', { day:'numeric', month:'long' });
+
+function onFileChange(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  currentMime = file.type || 'image/jpeg';
+  const reader = new FileReader();
+  reader.onload = ev => {
+    currentBase64 = ev.target.result.split(',')[1];
+    document.getElementById('previewImg').src = ev.target.result;
+    document.getElementById('previewWrap').style.display = 'block';
+    document.getElementById('uploadZone').style.display = 'none';
+    hide('resultCard'); hide('errorBox');
+  };
+  reader.readAsDataURL(file);
+}
+
+function resetPhoto() {
+  currentBase64 = null; currentResult = null;
+  document.getElementById('previewWrap').style.display = 'none';
+  document.getElementById('uploadZone').style.display = '';
+  document.getElementById('fileInput').value = '';
+  hide('resultCard'); hide('errorBox'); hide('loadingCard');
+}
+
+async function analyzePhoto() {
+  if (!currentBase64) return;
+  hide('resultCard'); hide('errorBox');
+  show('loadingCard');
+  document.querySelector('.preview-btns').style.display = 'none';
+  try {
+    const res = await fetch('/api/analyze', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ base64: currentBase64, mimeType: currentMime })
+    });
+    const data = await res.json();
+    if (!res.ok || data.error) throw new Error(data.error || 'Ошибка сервера');
+    currentResult = data;
+    showResult(data);
+  } catch(e) {
+    showError(e.message);
+    document.querySelector('.preview-btns').style.display = '';
+  } finally {
+    hide('loadingCard');
+  }
+}
+
+function showResult(r) {
+  document.getElementById('rDish').textContent = r.dish;
+  document.getElementById('rWeight').textContent = r.weight;
+  document.getElementById('rKcal').textContent = r.kcal + ' ккал';
+  document.getElementById('rP').textContent = r.protein + 'г';
+  document.getElementById('rF').textContent = r.fat + 'г';
+  document.getElementById('rC').textContent = r.carbs + 'г';
+  document.getElementById('rNote').textContent = r.note || '';
+  show('resultCard');
+}
+
+function addToDiary() {
+  if (!currentResult) return;
+  diary.push({ ...currentResult, id: Date.now(), emoji: getEmoji(currentResult.dish), time: new Date().toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'}) });
+  renderDiary(); updateSummary(); resetPhoto(); hide('resultCard');
+}
+
+function removeEntry(id) {
+  diary = diary.filter(e => e.id !== id);
+  renderDiary(); updateSummary();
+}
+
+function getEmoji(dish='') {
+  const d = dish.toLowerCase();
+  if(d.includes('каш')||d.includes('овсян')) return '🥣';
+  if(d.includes('салат')) return '🥗';
+  if(d.includes('суп')||d.includes('борщ')) return '🍲';
+  if(d.includes('курич')) return '🍗';
+  if(d.includes('рыб')||d.includes('лосос')) return '🐟';
+  if(d.includes('яйц')||d.includes('омлет')) return '🍳';
+  if(d.includes('пицц')) return '🍕';
+  if(d.includes('бургер')) return '🍔';
+  if(d.includes('паст')||d.includes('макарон')) return '🍝';
+  if(d.includes('рис')) return '🍚';
+  if(d.includes('банан')||d.includes('фрукт')) return '🍌';
+  if(d.includes('молок')||d.includes('йогурт')||d.includes('творог')) return '🥛';
+  if(d.includes('конфет')||d.includes('сладк')||d.includes('зефир')) return '🍬';
+  return '🍽';
+}
+
+function renderDiary() {
+  const el = document.getElementById('diaryList');
+  if (!diary.length) { el.innerHTML = '<div class="empty"><div class="empty-icon">🍽</div>Пока пусто. Сфотографируй еду!</div>'; return; }
+  el.innerHTML = [...diary].reverse().map(e => `
+    <div class="diary-item">
+      <div class="diary-emoji">${e.emoji}</div>
+      <div class="diary-info">
+        <div class="diary-name">${e.dish}</div>
+        <div class="diary-macros">Б ${e.protein}г · Ж ${e.fat}г · У ${e.carbs}г · ${e.time}</div>
+      </div>
+      <div class="diary-kcal">${e.kcal}</div>
+      <button class="diary-del" onclick="removeEntry(${e.id})">🗑</button>
+    </div>`).join('');
+}
+
+function updateSummary() {
+  const t = diary.reduce((a,e)=>({kcal:a.kcal+e.kcal,p:a.p+e.protein,f:a.f+e.fat,c:a.c+e.carbs}),{kcal:0,p:0,f:0,c:0});
+  document.getElementById('totalKcal').textContent = t.kcal;
+  document.getElementById('totalP').textContent = t.p+'г';
+  document.getElementById('totalF').textContent = t.f+'г';
+  document.getElementById('totalC').textContent = t.c+'г';
+  document.getElementById('progressFill').style.width = Math.min(t.kcal/GOAL*100,100)+'%';
+}
+
+function show(id) { document.getElementById(id).style.display = ''; }
+function hide(id) { document.getElementById(id).style.display = 'none'; }
+function showError(msg) { const el=document.getElementById('errorBox'); el.textContent='⚠️ '+msg; el.style.display=''; }
+
+renderDiary();
+
+// Telegram WebApp init
+if (window.Telegram?.WebApp) {
+  Telegram.WebApp.ready();
+  Telegram.WebApp.expand();
+}
+</script>
+</body>
+</html>
